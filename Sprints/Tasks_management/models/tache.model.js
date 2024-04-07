@@ -1,11 +1,16 @@
 const yup = require('yup');
 const mongoose = require("mongoose");
+const { boolean, bool } = require('joi');
 const tacheSchema = new mongoose.Schema({
   instructions: {
     type: String,
     trim: true,
-    minlength: 20,
-    maxlength: 100,
+
+  },
+  description: {
+    type: String,
+    trim: true,
+
   },
   categorie: {
     type: mongoose.Schema.Types.ObjectId,
@@ -14,34 +19,40 @@ const tacheSchema = new mongoose.Schema({
   titre: {
     type: String,
     trim: true,
-    minlength: 10,
-    maxlength: 20,
+
   },
-  createursDeContenu: [
-    {
-      createurDeContenu: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-      },
-      projet: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Projet',
-      },
-      etat: {
-        type: String,
-        enum: ['en attente', 'manqué', 'fait'],
-        default: 'en attente',
-      },
-    },
-  ],
+  createurDeContenu:
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+
+  },
+
+  etat: {
+    type: String,
+    enum: ['en attente', 'manqué', 'fait'],
+    default: 'en attente',
+  },
   dateLimite: {
     type: Date,
   },
-  estOptionnel: {
+  optionnel: {
     type: Boolean,
     default: true,
   },
- 
+  vuPar: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'EtatTache',
+    },
+   
+  ],
+  projet:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Projet',
+}, 
+
+
 }, { timestamps: true });
 
 const Tache = mongoose.model('Tache', tacheSchema);
@@ -52,9 +63,9 @@ const taskValidationSchema = yup.object().shape({
   affectea: yup.array().of(yup.string().trim().length(24)).min(1, 'At least one user ID is required'),
   isOptional: yup.bool(),
   dateLimite: yup.date().required('DateLimite is required for non-optional tasks'),
- 
+
 });
 
 
-  // Export the model
-  module.exports = {Tache,taskValidationSchema};
+// Export the model
+module.exports = Tache;

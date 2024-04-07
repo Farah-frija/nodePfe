@@ -2,112 +2,105 @@ const express = require('express');
 const router = express.Router();
 const yup = require('yup');
 const mongoose = require('mongoose');
-const { Tache, taskValidationSchema } = require('../models/tache.model');
-const Categorie = require('../models/categorie.model');
+const  Tache = require('../models/tache.model');
+const {EtatTache} = require('../models/EtatTache.model');
 const { User } = require("../../authentification/models/ContentCreator.model");
 
 //administrateur va ajouter une tache
-module.exports.addtask = async (req, res) => {
+module.exports.addTask = async (req, res,io) => {
   try {
+    console.log(io);
+    // Extract task data from request body
+    const { instructions, description,
+      // categorie,
+        titre, createurDeContenu, dateLimite, optionnel } = req.body;
 
-    // Validate request body using Yup
-    try {
-
-      console.log(req.body);
-      await taskValidationSchema.validate(req.body, { abortEarly: false });
-
-    }
-    catch { throw new Error('Validation failed:'); };
-    //retrenir les infos
-    const { instructions, categorie, titre, createursDeContenu, optionnel, dateLimite } = req.body;
-
-    /* const existingCategorie = await Categorie.findById(req.body.categorie);
-     if (!existingCategorie) {
-       throw new Error(`Categorie with ID ${req.body.categorie} not found`);
-     }*/
-//verification de la date 
-    if (dateLimite && new Date(dateLimite) < new Date()) {
-      console.log("bch ythabt fl date");
-      throw new Error('DateLimite must be in the future ');
-    }
-    // Perform additional checks
-
-
-
-    if (!optionnel) {
-      console.log("bch ythabt fi ken me aandouch users w howa obligatoire");
-      if (!createursDeContenu || createursDeContenu.length === 0)
-        throw new Error('A non-optional task must be assigned to at least one user');
-
-
-
-// verification de la validité des ids entrés
-      const invalidIds = createursDeContenu.filter(({ createurDeContenu }) => {
-        try {
-          new mongoose.Types.ObjectId(createurDeContenu); // Try to construct ObjectId
-          console.log("id valide") // If successful, it's a valid ObjectId
-        } catch (error) {
-          throw new Error(error.message); // If an error occurs, it's not a valid ObjectId
-        }
-      });
-
-      for (const userId of createursDeContenu) {
-        const user = await User.findById(userId);
-        console.log("lkahom");
-//ylawej aala kol user mawjoud fl bd wala lee
-        if (!user) {
-          throw new Error(`User with ID ${userId} not found`);
-        }
-        user.taches.push({
-          createurDeContenu: userId,
-          projet: null,
-
-        });
-        console.log(user);
-//nhot e tache aand l user
-        await user.save();
-
-      }
-//nassnaa tache jdida w nhotha fl collection mtaa taches
-      const task = new Tache({
-        instructions,
-        categorie,
-        titre,
-        createursDeContenu: createursDeContenu.map(userId => ({
-          createurDeContenu: userId,
-
-        })),
-        dateLimite,
-      });
-
-      await task.save();
+    // Check if categorie exists
+   /* const existingCategorie = await Categorie.findById(categorie);
+    if (!existingCategorie) {
+      throw new Error('Categorie not found');
+     
+    }*/
+       if(!optionnel)
+    // Check if createurDeContenu exists
+    {const existingUser = await User.findById(createurDeContenu);
+    
+    if (!existingUser) {
       
-      return res.status(200).json({ message: 'Task added successfully to the users' });
+      throw new Error('Createur de contenu not found');
+    }}
+    const newTask = new Tache({
+      instructions,
+      description,
+      //categorie,
+      titre,
+      dateLimite,
+      optionnel,
+      ...(optionnel ? {} : { createurDeContenu }), // Include createurDeContenu only if optionnel is false
+    });
+    // Save the new task document to the database
+
+    await newTask.save();
+    console.log(newTask.id);
+    if(optionnel)
+    { const users = await User.find({});
+      for(var user in users)
+      {  if(!user.bloque)
+        {io.to(user._id).emit('newTaskAdded', { newTask, message: "optionalTask" });}
+      }
+      // Create EtatTache instances for each user and the new task
+      const etatTaches = users.map(user => ({
+          tache: newTask._id,
+          createurDeContenu: user._id,
+      }));
+      console.log(etatTaches);
+      // Save EtatTache instances to the database
+      const savedEtatTaches = await EtatTache.insertMany(etatTaches);
+  
+      // Iterate through savedEtatTaches to update the respective user
+      for (const etatTache of savedEtatTaches) {
+          // Update tachesVues in the User document for the corresponding user
+         const user= await User.findByIdAndUpdate(etatTache.createurDeContenu, { $push: { tachesVues: etatTache._id } });
+        
+      }
+  
+      // Extract the ObjectId from each saved EtatTache object
+      const etatTacheIds = savedEtatTaches.map(et => et._id);
+  
+      // Update vuPar in the Tache document
+      await Tache.findByIdAndUpdate(newTask._id, { $push: { vuPar: { $each: etatTacheIds } } });
+  }else {
+          // If task is obligatory, create EtatTache instance for content creator
+          const etatTache = new EtatTache({
+            tache: newTask._id,
+            createurDeContenu: createurDeContenu,
+          });
+    
+          // Save EtatTache instance to the database
+          await etatTache.save();
+     
+          // Update content creator's tachesVues
+          const user = await User.findByIdAndUpdate(createurDeContenu, { 
+            $push: { tachesVues: etatTache._id },
+            $addToSet: { taches: newTask._id } // Use $addToSet to avoid adding duplicate tasks
+        });
+        
+        if (user && !user.bloque && user.verifie) {
+         
+        io.to(user._id).emit('newTaskAdded', { newTask, message: "mandatory Task" });
+        }
+        
+          
+        }
 
 
-
-    }
-    else {
-      const task = new Tache({
-        instructions,
-        categorie,
-        titre,
-        createursDeContenu: [],  // Empty array for optional task
-        dateLimite,
-      });
-      await task.save();
-    }
-
-
-
-
-
-    return res.status(200).json({ message: 'Task added successfully' });
+    // Send success response
+    res.status(201).json( newTask );
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    // Send error response if any error occurs
+    res.status(500).json(error.message);
   }
 };
-
 
 module.exports.submitTask = async (req, res) => {
   try {
@@ -230,16 +223,18 @@ module.exports.deleteTask= async (req, res) => {
 };
 //get all of the tasks 
 module.exports.getAllTasks = async (req, res) => {
+
   try {
+
     // Fetch all tasks from the database
-    const tasks = await Tache.find();
+    const tasks = await Tache.find().populate('etatsTache');
 
     // Return the tasks in the response
     res.status(200).json(tasks);
   } catch (error) {
     // If an error occurs, handle it and send an error response
     console.error('Error fetching tasks:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json(error.message);
   }
 };
 //get optional tasks

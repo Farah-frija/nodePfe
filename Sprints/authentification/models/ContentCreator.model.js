@@ -1,7 +1,12 @@
 const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
 const yup = require("yup");
+const Projet = require("../../ProjectManagement/models/Project");
+const jwt = require("jsonwebtoken");
 //const passwordComplexity = require("joi-password-complexity");
 const UserSchema = new mongoose.Schema({
+  photoDeProfile: { type: String },
+
   email: {
     type: String,
     trim: true,
@@ -22,9 +27,12 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["admin", "utilisateur"],
+    enum: ["administrateur", "utilisateur"],
     default: "utilisateur",
   },
+  taches:
+    [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tache' }],
+
   cin: {
     type: Number,
     minlength: 8,
@@ -62,41 +70,39 @@ const UserSchema = new mongoose.Schema({
   nombreAvertissement: {
     type: Number,
     default: 0
-},
-  verified: { type: Boolean, default: false },
-  taches: [
-    {
-      idtache: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Tache', // Reference the User model
-      },
-      projet: {
-        type: mongoose.Schema.Types.ObjectId,
-        
-      },
-      etat: {
-        type: String,
-        enum: ['pending', 'missed', 'done'],
-        default:'pending'
-      },
-    },
+  },
+  verifie: { type: Boolean, default: false },
+
+  projets: [
+    { type: Schema.Types.ObjectId, ref: 'Projet' }
   ],
+  tachesVues: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'EtatTache',
+    }
+  ],
+  //fcmToken: String,
 }, { timestamps: true });
 
-UserSchema.methods.generateAuthToken = function () {
-	const token = jwt.sign({ _id: this._id}, process.env.JWT_SECRET_KEY, {
-		expiresIn: "7d",
-	});
-	return token;
-};
+/*UserSchema.methods.generateAuthToken = function () {
+  const token = jwt.sign({ _id: this._id}, process.env.JWT_SECRET_KEY, {
+    expiresIn: "7d",
+  });
+  return token;
+};*/
 
 
 
-    /*UserSchema.methods.generateToken = function() {
-      return jwt.sign({ id: this._id, isAdmin: this.isAdmin },process.env.JWT_SECRET_KEY);
-    }*/
-  // User Model
-  const User= mongoose.model("User", UserSchema);
+/*UserSchema.methods.generateToken = function() {
+  return jwt.sign({ id: this._id, isAdmin: this.isAdmin },process.env.JWT_SECRET_KEY);
+}*/
+// User Model
+const maxAge = 2 * 60 * 60 //7200 seconds  // 2 * 60 = 2 minutes
+UserSchema.methods.generateToken = function() {
+  return jwt.sign({ id: this._id, role: this.role },process.env.JWT_SECRET_KEY,{expiresIn: maxAge});
+}
+const User = mongoose.model("User", UserSchema);
 
 
 
@@ -113,17 +119,17 @@ function validateRegisterUser(obj) {
     dateDeNaissance: yup.date().required(),
     nom: yup.string().trim().min(2).max(20).required(),
     prenom: yup.string().trim().min(2).max(20).required(),
-   
+
   });
 
-  return schema.validate(obj, { abortEarly: true});
+  return schema.validate(obj, { abortEarly: true });
 }
 
 // Validate Login User
 function validateEmail(obj) {
   const schema = yup.object().shape({
     email: yup.string().trim().min(15).max(100).email().required(),
-   
+
   });
 
   return schema.validate(obj, { abortEarly: false });
@@ -166,11 +172,12 @@ function validateUpdateUser(obj) {
 }
 
 
-  module.exports = {
-    User,
-    validateEmail,
-    validateRegisterUser,
-    validateUpdateUser,
-    validateChangePassword,
-    //validateLoginUser
-  };
+
+module.exports = {
+  User,
+  validateEmail,
+  validateRegisterUser,
+  validateUpdateUser,
+  validateChangePassword,
+  //validateLoginUser
+};

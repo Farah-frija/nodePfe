@@ -28,11 +28,11 @@ module.exports.EmailVerificationForPasswordReset = async (req, res) => {
   
   }
   console.log(user.bloque);
-  if (!user.verified)
+  if (!user.verifie)
   {
     throw new Error("User not verified please go verify your account!");
   }
-  console.log(user.verified);
+  console.log(user.verifie);
   
     let token = await Token.findOne({ userId: user._id });
     console.log(token);
@@ -43,10 +43,10 @@ module.exports.EmailVerificationForPasswordReset = async (req, res) => {
       }).save();
       console.log(token.token);
       
-      const url = `${process.env.BASE_URL}auth/${user.id}/verify/${token.token}`;
+      const url = `${process.env.BASE_URL}auth/${user.id}/verify/${token.token}/password/`;
 
          try{ 
-          await emailSender.sendEmail(user,'email verification' , url);
+          await emailSender.sendEmail(user,'email verification for password reset' , url);
     
         
   } catch (error) {
@@ -67,7 +67,7 @@ module.exports.EmailVerificationForPasswordReset = async (req, res) => {
 /**
  *  @desc    Reset The Password
  *  @route   /password/reset-password/:userId/:token
- *  @method  POST
+ *  @method  PUT
  *  @access  public
  */
 
@@ -99,8 +99,8 @@ module.exports.updatePassword = async (req, res) => {
       const hashedPassword = await bcrypt.hash(motdepasse, salt);
 
       user.motdepasse = hashedPassword;
-      if(!user.verified)
-      user.verified = true;
+      if(!user.verifie)
+      user.verifie = true;
       await user.save();
 
       return res.status(200).send({ message: "Password set and account verified successfully" });

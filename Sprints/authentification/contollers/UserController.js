@@ -6,11 +6,11 @@ const generatePassword = require('../services/GeneratePassword');
 
 /**
  *  @desc    Update User
- *  @route   /api/users/:id
+ *  @route   /api/users/photo/:id
  *  @method  PUT
  *  @access  private (only admin & user himself)
  */
-module.exports.updateUser= async (req, res) => {
+module.exports.updateUser = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       throw new Error('Invalid user ID');
@@ -19,49 +19,60 @@ module.exports.updateUser= async (req, res) => {
     if (error) {
       throw new Error('Invalid entries');
     }
-  
-    const user = await User.findById(req.params.id);
-  
+    let updateData = req.body;
+
+    // Check if bloque is true, then set token to false
+    if (req.body.bloque === true) {
+      updateData.token = false;
+    }
+
+    const user = await User.findByIdAndUpdate(req.params.id, updateData, { new: true });
+
+
+
     if (!user) {
       throw new Error('User not found');
     }
-  
-   const newEmail  = req.body.email;
-  
-    console.log("newEmail");
-    console.log("user.email");
-    if (newEmail && newEmail !== user.email  && !user.bloque) {
-     
-      const newPassword = generatePassword();
-     
-      
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(newPassword, salt);
-  
-      // Send an email with the new password
-      try{ await sendEmail(user,newPassword,"Changement d'email");}
-      catch (error) {
-        throw new Error("email n'a pas été envoyé à l'utilisateur");
-      };
-      // Update user data with the new email and hashed password
-      user.email = newEmail;
-      user.motdepasse = hashedPassword;
-    } else {
-      // If the email is not being updated, simply update other user data
-      user.set(req.body);
-    }
-  
-    // Save the updated user
-    const updatedUser = await user.save();
-    if(!updatedUser)
-    
-    throw new Error('an error has occured');
-    res.status(200).json(updatedUser);
+
+    res.status(200).json(user);
   } catch (error) {
     console.error(error.message);
-    res.status(500).json(error.message );
+    res.status(500).json(error.message);
   };
+};
+
+/**
+ *  @desc    Update User Photo
+ *  @route   /api/users/:id
+ *  @method  PUT
+ *  @access  private (only admin & user himself)
+ */
+module.exports.updateUserPhoto = async (req, res,next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      throw new Error('Invalid user ID');
+    }
+ 
+
+    
+    const {filename}=req.file;
+    console.log(filename);
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { photoDeProfile: filename },
+      { new: true } // Set to true to return the modified document
+    );
+    
+    if (!updatedUser) {
+      throw new Error('User not found or no modification performed');
+    }
+  
+    return res.status(200).json({photoDeProfile:updatedUser.photoDeProfile});
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json(error.message);
   };
+};
 
 
 
@@ -73,9 +84,9 @@ module.exports.updateUser= async (req, res) => {
  */
 module.exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password");
-    if (!users) 
-    throw new Error('not found');
+    const users = await User.find().select("-password").populate('projets');;
+    if (!users)
+      throw new Error('not found');
     res.status(200).json(users);
   } catch (error) {
     console.error(error);
@@ -95,7 +106,21 @@ module.exports.getUserById = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       throw new Error('Invalid user ID');
     }
-    const user = await User.findById(req.params.id).select("-password");
+    const user = await User.findById(req.params.id).select("-password")
+    .populate({
+      path: 'taches', // Populate the 'taches' field referencing 'Tache' model
+    })
+      .populate({
+        path: 'projets', // Populate the 'projets' field referencing 'Projet' model
+      })
+      .populate({
+        path: 'tachesVues', // Populate the 'tachesVues' field referencing 'EtatTache' model
+        populate: {
+          path: 'tache', // Populate the 'tache' field inside 'EtatTache' model
+          model: 'Tache' // The model to use for populating 'tache' field
+        }
+      }// Populate the 'tachesVues' field referencing 'EtatTache' model
+      );
     if (!user) {
       throw new Error("User not found");
     }
@@ -103,10 +128,21 @@ module.exports.getUserById = async (req, res) => {
     res.status(200).json(user);
   } catch (error) {
     console.error(error.message);
-    res.status(404).json({ message: error.message });
+    res.status(500).json(error.message);
   }
 };
 
+module.exports.logout = async (req,res) => {
+  try {
+    res.cookie('jwt_token', '', { httpOnly: false, maxAge: 1 });
+    req.session.destroy();
+    res.status(200).json({
+      message: 'User successfully logged out',
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  } 
+}
 
 /**
  *  @desc    Delete User

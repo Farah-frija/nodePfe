@@ -2,7 +2,14 @@ const mongoose = require("mongoose");
 const CategorieSchema = new mongoose.Schema({
   nom: {
         type: String,
-        enum: ['Quizz','Meme','feedback'],},
+        unique: true ,
+      },
+ modeles:[
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'modele',
+  }
+ ]
 }, { timestamps: true });
   const Categorie = mongoose.model('Categorie', CategorieSchema);
 
