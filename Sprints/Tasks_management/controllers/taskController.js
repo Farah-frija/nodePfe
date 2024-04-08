@@ -9,7 +9,8 @@ const { User } = require("../../authentification/models/ContentCreator.model");
 //administrateur va ajouter une tache
 module.exports.addTask = async (req, res,io) => {
   try {
-    console.log(io);
+
+  
     // Extract task data from request body
     const { instructions, description,
       // categorie,
@@ -44,10 +45,7 @@ module.exports.addTask = async (req, res,io) => {
     console.log(newTask.id);
     if(optionnel)
     { const users = await User.find({});
-      for(var user in users)
-      {  if(!user.bloque)
-        {io.to(user._id).emit('newTaskAdded', { newTask, message: "optionalTask" });}
-      }
+    
       // Create EtatTache instances for each user and the new task
       const etatTaches = users.map(user => ({
           tache: newTask._id,
@@ -85,10 +83,11 @@ module.exports.addTask = async (req, res,io) => {
             $addToSet: { taches: newTask._id } // Use $addToSet to avoid adding duplicate tasks
         });
         
-        if (user && !user.bloque && user.verifie) {
-         
-        io.to(user._id).emit('newTaskAdded', { newTask, message: "mandatory Task" });
-        }
+      //   if (user && !user.bloque && user.verifie) {
+      //    console.log(user._id);
+      //  cbon= io.to(user._id).emit('newTaskAdded', { newTask, message: "mandatory Task" });
+      //  console.log(cbon,"cbon");
+      //   }
         
           
         }
@@ -227,7 +226,7 @@ module.exports.getAllTasks = async (req, res) => {
   try {
 
     // Fetch all tasks from the database
-    const tasks = await Tache.find().populate('etatsTache');
+    const tasks = await Tache.find();
 
     // Return the tasks in the response
     res.status(200).json(tasks);
