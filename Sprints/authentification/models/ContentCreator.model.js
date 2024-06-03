@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const yup = require("yup");
-const Projet = require("../../ProjectManagement/models/Project");
 const jwt = require("jsonwebtoken");
 //const passwordComplexity = require("joi-password-complexity");
 const UserSchema = new mongoose.Schema({
@@ -30,8 +29,7 @@ const UserSchema = new mongoose.Schema({
     enum: ["administrateur", "utilisateur"],
     default: "utilisateur",
   },
-  taches:
-    [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tache' }],
+
 
   cin: {
     type: Number,
@@ -75,6 +73,12 @@ const UserSchema = new mongoose.Schema({
 
   projets: [
     { type: Schema.Types.ObjectId, ref: 'Projet' }
+  ],
+  taches: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tache',
+    }
   ],
   tachesVues: [
     {

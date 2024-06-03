@@ -25,10 +25,13 @@ categorie:  {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'modele',
   },
-  
+  valide:{
+    type: String,
+    enum: ["accepté", "refusé","en attente"]
+  },
   etat:{
     type: String,
-    enum: ["publique", "privé"],
+    enum: ["public", "privé"],
   },
   createurDeContenu:{
     type: mongoose.Schema.Types.ObjectId,

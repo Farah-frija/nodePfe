@@ -73,6 +73,32 @@ module.exports.updateTemplate= async (req, res) => {
       res.status(500).json(err.message);
     }
   }
+  module.exports.incrementTemplate = async (req, res) => {
+    const { id } = req.params;
+console.log(id);
+    try {
+      // Retrieve the existing document
+      let modele = await Modele.findById(id);
+  
+      if (!modele) {
+        throw new Error("Model not found");
+      }
+  
+      // Increment the Utilise field by 1
+      const newUtilise = modele.Utilise + 1;
+  
+      // Update the document with the new Utilise value
+      modele = await Modele.findByIdAndUpdate(id, { Utilise: newUtilise }, { new: true });
+  
+      res.json(modele);
+    } catch (err) {
+      res.status(500).json(err.message);
+      console.log(err.message);
+    }
+  }
+  
+  
+
 
 
 

@@ -142,20 +142,7 @@ module.exports.login = async (req, res) => {
       throw new Error("invalid email and motdepasse ");
     }*/
   
-    let user = await User.findOne({ email: req.body.email })  .populate({
-      path: 'taches', // Populate the 'taches' field referencing 'Tache' model
-    })
-      .populate({
-        path: 'projets', // Populate the 'projets' field referencing 'Projet' model
-      })
-      .populate({
-        path: 'tachesVues', // Populate the 'tachesVues' field referencing 'EtatTache' model
-        populate: {
-          path: 'tache', // Populate the 'tache' field inside 'EtatTache' model
-          model: 'Tache' // The model to use for populating 'tache' field
-        }
-      }// Populate the 'tachesVues' field referencing 'EtatTache' model
-      );
+    let user = await User.findOne({ email: req.body.email }) ;
     if (!user) {
       throw new Error("non existant user");
     }

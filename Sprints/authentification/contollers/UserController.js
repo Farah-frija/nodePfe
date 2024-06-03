@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const { User, validateUpdateUser } = require("../models/ContentCreator.model");
 const mongoose = require("mongoose");
 const generatePassword = require('../services/GeneratePassword');
+const Categorie = require("../../Tasks_management/models/categorie.model");
 
 /**
  *  @desc    Update User
@@ -111,7 +112,11 @@ module.exports.getUserById = async (req, res) => {
       path: 'taches', // Populate the 'taches' field referencing 'Tache' model
     })
       .populate({
-        path: 'projets', // Populate the 'projets' field referencing 'Projet' model
+        path: 'projets',
+        populate:{
+          path:'categorie',
+          model:'Categorie'
+        } // Populate the 'projets' field referencing 'Projet' model
       })
       .populate({
         path: 'tachesVues', // Populate the 'tachesVues' field referencing 'EtatTache' model
@@ -120,12 +125,17 @@ module.exports.getUserById = async (req, res) => {
           model: 'Tache' // The model to use for populating 'tache' field
         }
       }// Populate the 'tachesVues' field referencing 'EtatTache' model
+  
       );
     if (!user) {
       throw new Error("User not found");
     }
 
-    res.status(200).json(user);
+        
+    const { motdepasse, ...other } = user._doc;
+
+    res.status(200).json({ ...other});
+   
   } catch (error) {
     console.error(error.message);
     res.status(500).json(error.message);

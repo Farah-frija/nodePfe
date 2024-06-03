@@ -11,5 +11,6 @@ const {
 router.post("/addTemplate",verifyTokenAndAdmin,upload.single("contenu"),TemplateController.addTemplate);
 router.get("/",verifyToken,TemplateController.getTemplates);
 router.put("/:id",verifyTokenAndAdmin,TemplateController.updateTemplate );
+router.put("/Increment/:id",verifyToken,TemplateController.incrementTemplate);
 
 module.exports = router;

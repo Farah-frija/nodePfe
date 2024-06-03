@@ -14,7 +14,7 @@ module.exports.addTask = async (req, res,io) => {
     // Extract task data from request body
     const { instructions, description,
       // categorie,
-        titre, createurDeContenu, dateLimite, optionnel } = req.body;
+        titre, createursDeContenu, dateLimite, optionnel } = req.body;
 
     // Check if categorie exists
    /* const existingCategorie = await Categorie.findById(categorie);
@@ -22,14 +22,7 @@ module.exports.addTask = async (req, res,io) => {
       throw new Error('Categorie not found');
      
     }*/
-       if(!optionnel)
-    // Check if createurDeContenu exists
-    {const existingUser = await User.findById(createurDeContenu);
-    
-    if (!existingUser) {
-      
-      throw new Error('Createur de contenu not found');
-    }}
+  
     const newTask = new Tache({
       instructions,
       description,
@@ -37,7 +30,7 @@ module.exports.addTask = async (req, res,io) => {
       titre,
       dateLimite,
       optionnel,
-      ...(optionnel ? {} : { createurDeContenu }), // Include createurDeContenu only if optionnel is false
+
     });
     // Save the new task document to the database
 
@@ -54,40 +47,53 @@ module.exports.addTask = async (req, res,io) => {
       console.log(etatTaches);
       // Save EtatTache instances to the database
       const savedEtatTaches = await EtatTache.insertMany(etatTaches);
-  
+      print(savedEtatTaches.length);
       // Iterate through savedEtatTaches to update the respective user
       for (const etatTache of savedEtatTaches) {
           // Update tachesVues in the User document for the corresponding user
          const user= await User.findByIdAndUpdate(etatTache.createurDeContenu, { $push: { tachesVues: etatTache._id } });
-        
+         
       }
   
       // Extract the ObjectId from each saved EtatTache object
       const etatTacheIds = savedEtatTaches.map(et => et._id);
   
       // Update vuPar in the Tache document
-      await Tache.findByIdAndUpdate(newTask._id, { $push: { vuPar: { $each: etatTacheIds } } });
+      await Tache.findByIdAndUpdate(newTask._id, { $push: { concerne: { $each: etatTacheIds } } });
   }else {
           // If task is obligatory, create EtatTache instance for content creator
-          const etatTache = new EtatTache({
-            tache: newTask._id,
-            createurDeContenu: createurDeContenu,
-          });
-    
-          // Save EtatTache instance to the database
-          await etatTache.save();
-     
-          // Update content creator's tachesVues
-          const user = await User.findByIdAndUpdate(createurDeContenu, { 
-            $push: { tachesVues: etatTache._id },
-            $addToSet: { taches: newTask._id } // Use $addToSet to avoid adding duplicate tasks
-        });
-        
-      //   if (user && !user.bloque && user.verifie) {
-      //    console.log(user._id);
-      //  cbon= io.to(user._id).emit('newTaskAdded', { newTask, message: "mandatory Task" });
-      //  console.log(cbon,"cbon");
-      //   }
+       // Assuming createursDeContenu is an array of user IDs you want to include
+ // Populate this with the specific user IDs
+
+// Find only the users whose IDs are in the createursDeContenu array
+const users = await User.find({
+  '_id': { $in: createursDeContenu }
+});
+
+// Check if the number of users found matches the number of IDs in your list
+if (users.length !== createursDeContenu.length) {
+    throw new Error('One or more User IDs do not exist');
+}
+
+// Proceed with creating EtatTache instances only if all users exist
+const etatTaches = users.map(user => ({
+    tache: newTask._id,
+    createurDeContenu: user._id,
+}));
+console.log(etatTaches);
+
+// Save EtatTache instances to the database
+const savedEtatTaches = await EtatTache.insertMany(etatTaches);
+console.log(savedEtatTaches);
+console.log(newTask._id);
+// Iterate through savedEtatTaches to update the respective user
+for (const etatTache of savedEtatTaches) {
+    // Update tachesVues in the User document for the corresponding user
+    const user = await User.findByIdAndUpdate(etatTache.createurDeContenu, { $push: { taches: etatTache._id } });
+    await Tache.findByIdAndUpdate(newTask._id, { $push: { concerne: etatTache._id } });
+}
+
+
         
           
         }

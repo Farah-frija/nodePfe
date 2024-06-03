@@ -16,6 +16,12 @@ const taskStateSchema = new mongoose.Schema({
       type: Boolean,
       default: false,
     },
+    projet: 
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Projet',
+      }
+   
   });
   
   const EtatTache = mongoose.model('EtatTache', taskStateSchema);

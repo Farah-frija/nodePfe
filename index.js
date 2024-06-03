@@ -65,12 +65,12 @@ io.on('connection', (socket) => {
 }
 function emitMandatoryTask(task, userId) {
   
-    io.to(userId).emit('newTaskAdded', task);
+    io.to(userId).emit('mandatoryTaskadded', task);
 }
 
 // Function to emit optional task to the entire room
 function emitOptionalTask(task, roomId) {
-    io.to(roomId).emit('newTaskAdded', task);
+    io.to(roomId).emit('optionalTaskAdded', task);
     console.log('Optional task emitted to room:', task);
 }
 

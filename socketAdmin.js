@@ -1,7 +1,7 @@
 const io = require('socket.io-client');
 
 // Connect to the server
-const socket = io('http://localhost:8000');
+const socket = io('http://192.168.54.76:8000');
 socket.on('connect', () => {
     console.log('Connected to socket.io server admin');
 });

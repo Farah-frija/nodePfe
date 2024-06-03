@@ -1,7 +1,7 @@
 const io = require('socket.io-client');
 
 // Replace 'http://your_socketio_server_address' with the actual address of your socket.io server
-const socket = io('http://192.168.1.2:8000');
+const socket = io('http://192.168.54.76:8000');
 
 socket.on('connect', () => {
     console.log('Connected to socket.io server');

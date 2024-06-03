@@ -21,12 +21,7 @@ const tacheSchema = new mongoose.Schema({
     trim: true,
 
   },
-  createurDeContenu:
-  {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-
-  },
+ 
 
   etat: {
     type: String,
@@ -40,17 +35,14 @@ const tacheSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  vuPar: [
+  concerne: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'EtatTache',
     },
    
   ],
-  projet:{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Projet',
-}, 
+ 
 
 
 }, { timestamps: true });
